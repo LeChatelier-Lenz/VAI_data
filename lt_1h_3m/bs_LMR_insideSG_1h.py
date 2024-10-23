@@ -3,9 +3,6 @@ from tqdm import tqdm
 
 from lt_1h_3m.sort_3m_df import sort_bike_df
 
-# bs_station_df = pd.read_csv("0526BikeCoorNew.csv")
-# bs_record_df = sort_bike_df(6,8,"started_at")
-
 bike_stations_df = pd.read_csv("0526BikeCoorNew.csv")
 bike_stations_df = bike_stations_df[["sta_name"]]
 station_dict = {}
@@ -38,15 +35,17 @@ for i in range(len(taxi_bike_df)):
 # 读取出租车区域信息
 taxi_zones_df = pd.read_csv("taxi_zones.csv")
 taxi_zones_df = taxi_zones_df[["LocationID"]].sort_values(by="LocationID")
-
 # 处理提取需要的几列数据
-bs_record_df = sort_bike_df(6,8,"ended_at")
+bs_record_df = sort_bike_df(6,8,"started_at")
 
 
 # 先按照开始时间计算LMR数据
-bs_record_df_end = bs_record_df[['ended_at','end_station_name']].sort_values(by=['ended_at','end_station_name'], ascending=[True,True])
-init_time = pd.to_datetime(bs_record_df_end['ended_at'].iloc[0])
+bs_record_df_start = bs_record_df[['started_at','start_station_name']]
+bs_record_df_start.sort_values(by=['started_at','start_station_name'], ascending=[True,True])
+bs_record_df_start = bs_record_df_start[bs_record_df_start['started_at'] >= "2021-06-01 00:00:00"]
+init_time = pd.to_datetime(bs_record_df_start['started_at'].iloc[0])
 init_time_stamp = int(init_time.timestamp())
+print(init_time)
 for r in tqdm(range(len(taxi_zones_df))):
     # 遍历出租车区域id
     taxi_zone_id = taxi_zones_df['LocationID'].iloc[r]
@@ -55,14 +54,14 @@ for r in tqdm(range(len(taxi_zones_df))):
         continue
     # 获取该区域内的自行车站点列表（索引）
     bike_station_list = taxi_bike_dist[taxi_zone_id]
-    # 新的一个区域，初始化FMR_list
-    FMR_list = []
+    # 新的一个区域，初始化LMR_list
+    LMR_list = []
     # 遍历该区域内的自行车站点（名称）
     for j in range(len(bike_station_list)):
         this_sta_name = bike_stations_df.iloc[bike_station_list[j]].values[0]
         # print(this_sta_name)
         # 获取该站点的tripdata
-        this_data_df = bs_record_df_end[bs_record_df_end['end_station_name'] == this_sta_name]
+        this_data_df = bs_record_df_start[bs_record_df_start['start_station_name'] == this_sta_name]
         # 每一个自行车站点，新一次遍历都要重新初始化时间戳
         fixed_time = pd.to_datetime(init_time_stamp-(init_time_stamp % 3600), unit='s')
         # print(fixed_time)
@@ -72,7 +71,7 @@ for r in tqdm(range(len(taxi_zones_df))):
         for i in range(len(this_data_df)):
             # 该区域内的自行车站点的tripdata是按照时间顺序排列的
             # 新的时间戳，记录上一个时间戳的数据
-            this_time = pd.to_datetime(this_data_df['ended_at'].iloc[i])
+            this_time = pd.to_datetime(this_data_df['started_at'].iloc[i])
             if this_time - fixed_time >= pd.Timedelta('1 hours'):
                 # 超过1小时，更新时间戳，记录数据
                 # 更新该区域内的自行车站点的数据
@@ -85,16 +84,17 @@ for r in tqdm(range(len(taxi_zones_df))):
                 fixed_time = pd.to_datetime(this_time_stamp-(this_time_stamp % 3600), unit='s')
             # 没有超过1小时，继续累加
             this_value += 1
+        # print(this_column)
         # 该区域内的第j个自行车站点的数据处理完毕
-        FMR_list.append(this_column)
+        LMR_list.append(this_column)
     # 以最长的为准，其余的补0
-    max_len = max([len(i) for i in FMR_list])
-    for i in range(len(FMR_list)):
-        while len(FMR_list[i]) < max_len:
-            FMR_list[i].append(0)
+    max_len = max([len(i) for i in LMR_list])
+    for i in range(len(LMR_list)):
+        while len(LMR_list[i]) < max_len:
+            LMR_list[i].append(0)
     # 转置
-    FMR_list = list(map(list, zip(*FMR_list)))
-    FMR_df = pd.DataFrame(FMR_list)
-    FMR_df.to_csv("./bs_FMR_insideSG_1h/bs_FMR_insideSG_1h_zone-id-"+str(taxi_zone_id)+".csv",index=False,header=False)
+    LMR_list = list(map(list, zip(*LMR_list)))
+    LMR_df = pd.DataFrame(LMR_list)
+    LMR_df.to_csv("./bs_LMR_insideSG_1h/bs_LMR_insideSG_1h_zone-id-"+str(taxi_zone_id)+".csv",index=False,header=False)
 
 

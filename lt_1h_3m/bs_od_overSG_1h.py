@@ -62,7 +62,7 @@ def count_bike_sg(df,time_col,o_id_col,d_id_col):
         if this_time - fixed_time >= pd.Timedelta('1 hours'):
             # 新的时间戳，记录上一个时间戳的数据
             od_list.append(end_list)
-            end_list = [0 for j in range(total_od_num+1)]
+            end_list = [0 for j in range(total_od_num)]
             this_time_stamp = int(this_time.timestamp())
             fixed_time = pd.to_datetime(this_time_stamp-(this_time_stamp % 3600), unit='s')
         this_o_index = get_station_id(df[o_id_col].iloc[k])

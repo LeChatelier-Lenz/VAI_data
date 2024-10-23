@@ -80,7 +80,7 @@ if __name__ == '__main__':
     od_df = pd.DataFrame(od_list)
     with open('taxi_od_overSG_4h.csv', 'w', encoding='utf-8', newline='') as f:
         # 写入自定义表头
-        f.write(','.join(headers) + '\n')
+        # f.write(','.join(headers) + '\n')
         # 将 DataFrame 写入 CSV，不写入原有的列名
         od_df.to_csv(f, header=False, index=False)
     print("CSV文件已生成，包含自定义表头。")
